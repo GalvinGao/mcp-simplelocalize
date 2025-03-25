@@ -2,6 +2,10 @@
 
 A MCP (Model Context Protocol) server implementation for [SimpleLocalize](https://simplelocalize.io).
 
+<a href="https://glama.ai/mcp/servers/@GalvinGao/mcp-simplelocalize">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@GalvinGao/mcp-simplelocalize/badge" alt="SimpleLocalize Server MCP server" />
+</a>
+
 ## Usage
 
 ### Install
