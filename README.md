@@ -1,6 +1,6 @@
 # `mcp-simplelocalize`
 
-A MCP (Model Context Protocol) server implementation for [simplelocalize](https://simplelocalize.io).
+A MCP (Model Context Protocol) server implementation for [SimpleLocalize](https://simplelocalize.io).
 
 ## Usage
 
@@ -15,7 +15,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 2. Clone the repository
 
 ```bash
-uv clone https://github.com/GalvinGao/mcp-simplelocalize.git
+git clone https://github.com/GalvinGao/mcp-simplelocalize.git
 ```
 
 3. Install dependencies
