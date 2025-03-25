@@ -58,6 +58,8 @@ Don't forget to add it to your `.gitignore` file to avoid exposing your API key.
 - (any other conventions you want the LLM to follow, e.g. key naming style, etc. or just give it some examples would work well)
 ```
 
+6. Done! Enjoy prompting something like "Localize this component and update it to SimpleLocalize".
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
