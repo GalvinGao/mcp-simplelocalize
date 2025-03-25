@@ -1,6 +1,6 @@
 # `mcp-simplelocalize`
 
-A MCP (Model Context Protocol) plugin for [simplelocalize](https://simplelocalize.io).
+A MCP (Model Context Protocol) server implementation for [simplelocalize](https://simplelocalize.io).
 
 ## Usage
 
