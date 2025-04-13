@@ -1,0 +1,24 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - simplelocalizeApiKey
+    properties:
+      simplelocalizeApiKey:
+        type: string
+        default: your-api-key-here
+        description: API key for SimpleLocalize
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'python',
+      args: ['main.py'],
+      env: { SIMPLELOCALize_API_KEY: config.simplelocalizeApiKey, SIMPLELOCALIZE_API_KEY: config.simplelocalizeApiKey }
+    })
+  exampleConfig:
+    simplelocalizeApiKey: dummy-api-key-123
