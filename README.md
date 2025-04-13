@@ -1,8 +1,18 @@
 # `mcp-simplelocalize`
 
+[![smithery badge](https://smithery.ai/badge/@GalvinGao/mcp-simplelocalize)](https://smithery.ai/server/@GalvinGao/mcp-simplelocalize)
+
 A MCP (Model Context Protocol) server implementation for [SimpleLocalize](https://simplelocalize.io).
 
 ## Usage
+
+### Installing via Smithery
+
+To install SimpleLocalize MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@GalvinGao/mcp-simplelocalize):
+
+```bash
+npx -y @smithery/cli install @GalvinGao/mcp-simplelocalize --client claude
+```
 
 ### Install
 
