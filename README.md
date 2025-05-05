@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/galvingao-mcp-simplelocalize-badge.png)](https://mseep.ai/app/galvingao-mcp-simplelocalize)
+
 # `mcp-simplelocalize`
 
 A MCP (Model Context Protocol) server implementation for [SimpleLocalize](https://simplelocalize.io).
