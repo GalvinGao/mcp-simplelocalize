@@ -49,7 +49,7 @@ async def create_translation_keys(keys: List[dict]) -> str:
     Args:
         keys: List of dictionaries containing key information with fields:
             - key (required): Translation key (max 500 chars)
-            - namespace (optional): Namespace for the key (max 64 chars)
+            - namespace (optional): Namespace for the key (max 128 chars)
             - description (optional): Description for translators (max 500 chars)
     """
     # Validate and clean input
