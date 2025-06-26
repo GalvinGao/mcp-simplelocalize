@@ -31,6 +31,8 @@ async def make_simplelocalize_request(method: str, endpoint: str, json_data: dic
                 response = await client.post(url, headers=headers, json=json_data, timeout=30.0)
             elif method.upper() == "PATCH":
                 response = await client.patch(url, headers=headers, json=json_data, timeout=30.0)
+            elif method.upper() == "GET":
+                response = await client.get(url, headers=headers, timeout=30.0)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
             
@@ -137,6 +139,68 @@ async def update_translations(translations: List[dict]) -> str:
                 return f"Some translations failed to update: {failures}"
         
         return f"Successfully updated {len(cleaned_translations)} translations"
+    except SimpleLocalizeError as e:
+        return str(e)
+
+@mcp.tool()
+async def publish_translations(environment_key: str) -> str:
+    """Publish translations to a specified environment.
+    
+    This endpoint publishes translations from the translation editor to hosting environments
+    or from one hosting environment to another. Please note that this endpoint requires
+    authorization and is only available for paid plans.
+    
+    Common environment keys:
+    - "_latest": Publish from Translation Editor
+    - "_production": Publish to production environment (from _latest by default)
+    - Custom environment key: Publish to custom environment
+    
+    Args:
+        environment_key: The environment key to publish to (e.g., "_latest", "_production", or custom key)
+    """
+    if not environment_key:
+        raise ValueError("Environment key is required")
+    
+    try:
+        result = await make_simplelocalize_request(
+            "POST",
+            f"/api/v2/environments/{environment_key}/publish"
+        )
+        
+        return f"Successfully initiated publishing to environment '{environment_key}'. Status: {result.get('msg', 'OK')}"
+    except SimpleLocalizeError as e:
+        return str(e)
+
+@mcp.tool()
+async def get_environment_status(environment_key: str) -> str:
+    """Get the current status of a specified environment.
+    
+    This endpoint returns information about the environment including the number of keys,
+    languages, non-empty translations, creation date, and available resources.
+    
+    Args:
+        environment_key: The environment key to check status for (e.g., "_latest", "_production", or custom key)
+    """
+    if not environment_key:
+        raise ValueError("Environment key is required")
+    
+    try:
+        result = await make_simplelocalize_request(
+            "GET",
+            f"/api/v2/environments/{environment_key}"
+        )
+        
+        data = result.get("data", {})
+        
+        # Format the response in a readable way
+        status_info = f"""Environment '{environment_key}' Status:
+- Number of keys: {data.get('numberOfKeys', 0)}
+- Number of languages: {data.get('numberOfLanguages', 0)}
+- Non-empty translations: {data.get('numberOfNonEmptyTranslations', 0)}
+- Created at: {data.get('createdAt', 'Unknown')}
+- Number of resources: {len(data.get('resources', []))}"""
+        
+        return status_info
     except SimpleLocalizeError as e:
         return str(e)
 
