@@ -66,4 +66,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Contributing
 
+> Stop creating automated PRs that promotes your service on this README. You will be blocked and your PR will NOT get merged.
+> Well I just realized automated scripts won't see this anyways...
+
 Contributions are welcome! Feel free to open an issue or submit a pull request.
