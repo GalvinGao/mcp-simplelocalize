@@ -204,5 +204,306 @@ async def get_environment_status(environment_key: str) -> str:
     except SimpleLocalizeError as e:
         return str(e)
 
+@mcp.tool()
+async def duplicate_translation(from_dict: dict, to_dict: dict) -> str:
+    """Duplicate translations from one key/namespace to another key/namespace.
+    
+    This function copies all translations for a specific key (and optionally namespace)
+    to another key (and optionally namespace). Useful for duplicating translations
+    when creating similar keys or reorganizing translations.
+    
+    Args:
+        from_dict: Source dictionary with fields:
+            - key (required): Source translation key
+            - namespace (optional): Source namespace
+        to_dict: Destination dictionary with fields:
+            - key (required): Destination translation key
+            - namespace (optional): Destination namespace
+    
+    Returns:
+        String message indicating success or failure
+    """
+    # Validate input
+    if not from_dict.get("key"):
+        raise ValueError("Source dictionary must have a 'key' field")
+    if not to_dict.get("key"):
+        raise ValueError("Destination dictionary must have a 'key' field")
+    
+    source_key = from_dict["key"]
+    source_namespace = from_dict.get("namespace", "")
+    dest_key = to_dict["key"]
+    dest_namespace = to_dict.get("namespace", "")
+    
+    try:
+        # Step 1: Get all translations from the source
+        result = await make_simplelocalize_request(
+            "GET",
+            "/api/v2/translations"
+        )
+        
+        data = result.get("data", [])
+        
+        # Filter for translations matching the source key/namespace
+        source_translations = []
+        for item in data:
+            key = item.get("key", "")
+            namespace = item.get("namespace", "")
+            language = item.get("language", "")
+            text = item.get("text", "")
+            
+            # Check if this matches our source key/namespace
+            if key == source_key and namespace == source_namespace and text:
+                source_translations.append({
+                    "language": language,
+                    "text": text
+                })
+        
+        if not source_translations:
+            return f"No translations found for key '{source_key}'" + (f" in namespace '{source_namespace}'" if source_namespace else "")
+        
+        # Step 2: Create the destination key if it doesn't exist
+        create_key_payload = {
+            "key": dest_key
+        }
+        if dest_namespace:
+            create_key_payload["namespace"] = dest_namespace
+        
+        # Try to create the key (will fail silently if it already exists)
+        try:
+            await make_simplelocalize_request(
+                "POST",
+                "/api/v1/translation-keys/bulk",
+                {"translationKeys": [create_key_payload]}
+            )
+        except SimpleLocalizeError:
+            # Key might already exist, continue
+            pass
+        
+        # Step 3: Copy all translations to the destination
+        translations_to_update = []
+        for trans in source_translations:
+            update_payload = {
+                "key": dest_key,
+                "language": trans["language"],
+                "text": trans["text"]
+            }
+            if dest_namespace:
+                update_payload["namespace"] = dest_namespace
+            translations_to_update.append(update_payload)
+        
+        # Update translations in bulk
+        update_result = await make_simplelocalize_request(
+            "PATCH",
+            "/api/v2/translations/bulk",
+            {"translations": translations_to_update}
+        )
+        
+        if "failures" in update_result.get("data", {}):
+            failures = update_result["data"]["failures"]
+            if failures:
+                return f"Some translations failed to duplicate: {failures}"
+        
+        source_desc = f"'{source_key}'" + (f" (namespace: '{source_namespace}')" if source_namespace else "")
+        dest_desc = f"'{dest_key}'" + (f" (namespace: '{dest_namespace}')" if dest_namespace else "")
+        
+        return f"Successfully duplicated {len(translations_to_update)} translation(s) from {source_desc} to {dest_desc}"
+        
+    except SimpleLocalizeError as e:
+        return str(e)
+
+@mcp.tool()
+async def get_missing_translations() -> List[dict]:
+    """Get a list of translation keys that have missing translations.
+    
+    This endpoint returns translation keys along with their existing translations,
+    focusing on keys that are missing translations in one or more languages.
+    To identify missing translations, the function compares each key against all
+    languages that have at least one translation in the project.
+    
+    Returns:
+        List of dictionaries containing:
+            - key (str): Translation key
+            - namespace (str): Namespace for the key (if applicable)
+            - description (str): Description for translators (if applicable)
+            - translations (List[dict]): List of existing translations with fields:
+                - language (str): Language code
+                - text (str): Translation text
+    """
+    try:
+        # Get all translation keys with their translations
+        result = await make_simplelocalize_request(
+            "GET",
+            "/api/v2/translations"
+        )
+        
+        data = result.get("data", [])
+        
+        # First pass: collect all languages used in the project
+        all_languages = set()
+        keys_map = {}
+        
+        for item in data:
+            key = item.get("key", "")
+            namespace = item.get("namespace", "")
+            description = item.get("description", "")
+            language = item.get("language", "")
+            text = item.get("text", "")
+            
+            if language:
+                all_languages.add(language)
+            
+            # Create a unique identifier for the key (including namespace)
+            key_id = f"{namespace}:{key}" if namespace else key
+            
+            if key_id not in keys_map:
+                keys_map[key_id] = {
+                    "key": key,
+                    "namespace": namespace,
+                    "description": description,
+                    "translations": [],
+                    "languages_with_translations": set()
+                }
+            
+            # Add translation if text exists
+            if text and language:
+                keys_map[key_id]["translations"].append({
+                    "language": language,
+                    "text": text
+                })
+                keys_map[key_id]["languages_with_translations"].add(language)
+        
+        # Second pass: filter for keys that have missing translations
+        missing_translations = []
+        
+        for key_data in keys_map.values():
+            # Check if this key is missing translations in any language
+            missing_languages = all_languages - key_data["languages_with_translations"]
+            
+            # Only include keys that have missing translations
+            if missing_languages:
+                # Remove the helper set before returning
+                key_result = {
+                    "key": key_data["key"],
+                    "namespace": key_data["namespace"],
+                    "description": key_data["description"],
+                    "translations": key_data["translations"]
+                }
+                missing_translations.append(key_result)
+        
+        if len(missing_translations) == 0:
+            return "No missing translations found"
+        
+        return missing_translations
+        
+    except SimpleLocalizeError as e:
+        return [{"error": str(e)}]
+
+@mcp.tool()
+async def get_translations_for_keys(keys: List[str], namespace: str = None) -> List[dict]:
+    """Get translations for specific translation keys.
+    
+    This endpoint fetches translations for a list of specified keys, optionally filtered by namespace.
+    Returns all available translations for each key across all languages in the project.
+    
+    Args:
+        keys: List of translation keys to fetch translations for (required)
+        namespace: Optional namespace to filter the translations (if not provided, fetches from all namespaces)
+    
+    Returns:
+        List of dictionaries containing:
+            - key (str): Translation key
+            - namespace (str): Namespace for the key
+            - translations (List[dict]): List of translations with fields:
+                - language (str): Language code  
+                - text (str): Translation text
+                - reviewStatus (str): Review status (REVIEWED, NOT_REVIEWED)
+                - lastModifiedAt (str): Last modification timestamp
+    """
+    if not keys:
+        raise ValueError("At least one key is required")
+    
+    try:
+        # Build query parameters for fetching all translations
+        endpoint = "/api/v2/translations"
+        params = []
+        
+        # If namespace is specified, add it to the query
+        if namespace:
+            params.append(f"namespace={namespace}")
+        
+        # Add size parameter to get more results (max 500 per API docs)
+        params.append("size=500")
+        
+        # Build full endpoint URL with query parameters
+        if params:
+            endpoint += "?" + "&".join(params)
+        
+        result = await make_simplelocalize_request("GET", endpoint)
+        
+        data = result.get("data", [])
+        
+        # Create a set for faster lookup
+        keys_set = set(keys)
+        
+        # Group translations by key and namespace
+        keys_map = {}
+        
+        for item in data:
+            item_key = item.get("key", "")
+            item_namespace = item.get("namespace", "")
+            language = item.get("language", "")
+            text = item.get("text", "")
+            review_status = item.get("reviewStatus", "")
+            last_modified_at = item.get("lastModifiedAt", "")
+            
+            # Only include if the key is in our requested keys list
+            if item_key in keys_set:
+                # If namespace filter is specified, only include matching items
+                if namespace is not None and item_namespace != namespace:
+                    continue
+                    
+                # Create a unique identifier for the key/namespace combination
+                key_id = f"{item_namespace}:{item_key}" if item_namespace else item_key
+                
+                if key_id not in keys_map:
+                    keys_map[key_id] = {
+                        "key": item_key,
+                        "namespace": item_namespace,
+                        "translations": []
+                    }
+                
+                # Add translation if it has content
+                if text and language:
+                    keys_map[key_id]["translations"].append({
+                        "language": language,
+                        "text": text,
+                        "reviewStatus": review_status,
+                        "lastModifiedAt": last_modified_at
+                    })
+        
+        # Convert to list and ensure we have entries for all requested keys
+        results = []
+        for key in keys:
+            # Check both with and without namespace
+            key_id = f"{namespace}:{key}" if namespace else key
+            key_id_no_namespace = key
+            
+            if key_id in keys_map:
+                results.append(keys_map[key_id])
+            elif key_id_no_namespace in keys_map:
+                results.append(keys_map[key_id_no_namespace])
+            else:
+                # Add empty entry for keys that don't have translations
+                results.append({
+                    "key": key,
+                    "namespace": namespace or "",
+                    "translations": []
+                })
+        
+        return results
+        
+    except SimpleLocalizeError as e:
+        return [{"error": str(e)}]
+
 if __name__ == "__main__":
     mcp.run(transport='stdio')
