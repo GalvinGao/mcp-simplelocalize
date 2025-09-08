@@ -32,20 +32,20 @@ Don't forget to add it to your `.gitignore` file to avoid exposing your API key.
 
 ```json
 {
-	"mcpServers": {
-		"simplelocalize": {
-			"command": "uv",
-			"args": [
-				"run",
-				"--project",
-				"/path/to/mcp-simplelocalize/",
-				"/path/to/mcp-simplelocalize/main.py"
-			],
-			"env": {
-				"SIMPLELOCALIZE_API_KEY": "your-api-key-here"
-			}
-		}
-	}
+ "mcpServers": {
+  "simplelocalize": {
+   "command": "uv",
+   "args": [
+    "run",
+    "--project",
+    "/path/to/mcp-simplelocalize/",
+    "/path/to/mcp-simplelocalize/main.py"
+   ],
+   "env": {
+    "SIMPLELOCALIZE_API_KEY": "your-api-key-here"
+   }
+  }
+ }
 }
 ```
 
@@ -68,5 +68,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 > Stop creating automated PRs that promotes your service on this README. You will be blocked and your PR will NOT get merged.
 > Well I just realized automated scripts won't see this anyways...
+> PRs related to the actual codes are still appreciated!
 
 Contributions are welcome! Feel free to open an issue or submit a pull request.
